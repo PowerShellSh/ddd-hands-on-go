@@ -1,0 +1,80 @@
+@startuml Domain Event Sequence
+actor クライアント
+participant "Go HTTP Server" as HTTPServer
+participant "RegisterBookApplicationService" as RegisterService
+participant "TransactionManager" as TxManager
+participant "ISBNDuplicationCheckDomainService" as ISBNDuplicateCheck
+participant "Book" as BookAggregate
+participant "PostgresBookRepository" as PostgresRepo
+participant "EventEmitter" as EventPublisher
+participant "LogSubscriber" as LogSubscriber
+
+クライアント -> HTTPServer : POST /books
+activate HTTPServer
+
+HTTPServer -> RegisterService : 書籍登録処理開始 (Execute)
+activate RegisterService
+
+RegisterService -> TxManager : トランザクション開始 (Begin)
+activate TxManager
+
+    TxManager -> RegisterService : 登録処理実行 (匿名関数内)
+    activate RegisterService #lightblue
+
+    RegisterService -> ISBNDuplicateCheck : ISBN 重複チェック (Execute)
+    activate ISBNDuplicateCheck
+    ISBNDuplicateCheck --> RegisterService : チェック結果
+    deactivate ISBNDuplicateCheck
+
+    alt 重複がある場合
+        RegisterService --> TxManager : エラー返却 (Rollback要求)
+        TxManager -> TxManager : ロールバック
+        TxManager --> RegisterService : エラー
+        RegisterService -> HTTPServer : エラーレスポンス
+        HTTPServer -> クライアント : エラーレスポンス
+    else 重複がない場合
+        RegisterService -> BookAggregate : 書籍生成 (NewBook)
+        activate BookAggregate
+        BookAggregate -> BookAggregate : 'BookCreated' イベント記録 (AddEvent)
+        BookAggregate --> RegisterService : 書籍インスタンス
+        deactivate BookAggregate
+
+        RegisterService -> PostgresRepo : 書籍保存 (Save)
+        activate PostgresRepo
+        PostgresRepo --> RegisterService : 保存完了
+        deactivate PostgresRepo
+
+        ' ドメインイベントの取り出しと発行
+        RegisterService -> BookAggregate : イベント取得 (PullEvents)
+        activate BookAggregate
+        BookAggregate --> RegisterService : イベントリスト
+        deactivate BookAggregate
+
+        loop 各イベントに対して
+            RegisterService -> EventPublisher : イベント発行 (Publish)
+            activate EventPublisher
+            EventPublisher -> LogSubscriber : イベント通知 (Subscribe callback)
+            activate LogSubscriber
+            LogSubscriber --> EventPublisher : 完了
+            deactivate LogSubscriber
+            EventPublisher --> RegisterService : 完了
+            deactivate EventPublisher
+        end
+
+        RegisterService --> TxManager : 成功返却 (Commit要求)
+        deactivate RegisterService
+
+        TxManager -> TxManager : コミット
+        TxManager --> RegisterService : 成功
+
+        RegisterService -> HTTPServer : 成功レスポンス
+        RegisterService --> HTTPServer : 完了
+        deactivate RegisterService
+
+        HTTPServer -> クライアント : 201 Created
+    end
+
+deactivate TxManager
+deactivate HTTPServer
+
+@enduml

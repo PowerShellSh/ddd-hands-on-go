@@ -1,0 +1,7 @@
+@startuml
+class StockId <<ValueObject>> {
+  - value: string
+  + NewStockId(value: string): StockId
+  + Value(): string
+}
+@enduml

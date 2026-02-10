@@ -1,0 +1,59 @@
+@startuml Architecture
+
+title "DDD Hands-on Go Architecture (Bird's Eye View)"
+
+package "Presentation Layer (cmd/api)" {
+    [Handler] <<HTTP Handlers>>
+}
+
+package "Application Layer (internal/application)" {
+    [Application Service] <<Use Cases>>
+}
+
+package "Domain Layer (internal/domain)" {
+    package "Model" {
+        [Entity / Aggregate]
+        [Value Object]
+    }
+    package "Service" {
+        [Domain Service]
+    }
+    package "Repository" {
+        [Repository Interface]
+    }
+    package "Shared / Domain Event" {
+        [Transaction Manager Interface]
+        [Domain Event Interface]
+        [Domain Event Publisher]
+        [Domain Event Subscriber]
+    }
+}
+
+package "Infrastructure Layer (internal/infrastructure)" {
+    [Postgres Repository]
+    [Transaction Manager Impl]
+    [DB Connection]
+    [Event Emitter]
+    [Log Subscriber]
+}
+
+' Dependencies
+[Handler] -down-> [Application Service]
+[Application Service] -down-> [Entity / Aggregate]
+[Application Service] -down-> [Repository Interface]
+[Application Service] -down-> [Domain Service]
+[Application Service] -down-> [Transaction Manager Interface]
+[Application Service] -down-> [Domain Event Publisher]
+
+[Postgres Repository] -up-|> [Repository Interface]
+[Postgres Repository] -down-> [DB Connection]
+[Transaction Manager Impl] -up-|> [Transaction Manager Interface]
+
+[Event Emitter] -up-|> [Domain Event Publisher]
+[Event Emitter] -up-|> [Domain Event Subscriber]
+[Log Subscriber] -down-> [Domain Event Subscriber] : implements >
+[Log Subscriber] -left-> [Event Emitter] : registered to >
+
+[Domain Service] -down-> [Repository Interface]
+
+@enduml

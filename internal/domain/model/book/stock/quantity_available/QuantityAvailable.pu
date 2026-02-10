@@ -1,0 +1,9 @@
+@startuml
+class QuantityAvailable <<ValueObject>> {
+  - value: int
+  + NewQuantityAvailable(value: int): QuantityAvailable
+  + Value(): int
+  + Increment(amount: int): QuantityAvailable
+  + Decrement(amount: int): QuantityAvailable
+}
+@enduml

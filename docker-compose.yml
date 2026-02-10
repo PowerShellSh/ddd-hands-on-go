@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ddd-hands-on-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ddd
+      POSTGRES_PASSWORD: ddd
+      POSTGRES_DB: ddd_hands_on
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ddd"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

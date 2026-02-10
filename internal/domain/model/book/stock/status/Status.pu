@@ -1,0 +1,15 @@
+@startuml
+enum StatusEnum {
+  InStock
+  LowStock
+  OutOfStock
+}
+
+class Status <<ValueObject>> {
+  - value: StatusEnum
+  + NewStatus(value: StatusEnum): Status
+  + Value(): StatusEnum
+  + IsOutOfStock(): bool
+  + ToStatusEnum(s: string): StatusEnum
+}
+@enduml
