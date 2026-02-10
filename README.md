@@ -139,3 +139,4 @@ go test ./tests/...
 - **ビルドエラー**:
     - `go mod tidy` を実行して依存関係を整理してください。
 # ddd-hands-on-go
+![alt text](image.png)
