@@ -5,6 +5,7 @@ import (
 	"ddd-hands-on-go/internal/application/book"
 	domain_book "ddd-hands-on-go/internal/domain/model/book"
 	"ddd-hands-on-go/internal/domain/service"
+	"ddd-hands-on-go/internal/domain/shared"
 	"testing"
 )
 
@@ -36,11 +37,18 @@ func (m *mockTransactionManager) Begin(ctx context.Context, f func(ctx context.C
 	return f(ctx)
 }
 
+type mockEventPublisher struct{}
+
+func (m *mockEventPublisher) Publish(event shared.DomainEvent) {
+	// テスト用のモック実装: 何もしない
+}
+
 func TestRegisterBookApplicationService(t *testing.T) {
 	repo := &mockBookRepository{books: make(map[string]*domain_book.Book)}
 	txManager := &mockTransactionManager{}
 	dupSvc := service.NewISBNDuplicationCheckDomainService(repo)
-	appSvc := book.NewRegisterBookApplicationService(repo, txManager, dupSvc)
+	eventPublisher := &mockEventPublisher{}
+	appSvc := book.NewRegisterBookApplicationService(repo, txManager, dupSvc, eventPublisher)
 
 	cmd := book.RegisterBookCommand{
 		ISBN:        "978-4-00-111111-1",

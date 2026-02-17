@@ -1,0 +1,94 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  # テストファイルもチェック対象に含める
+  tests: true
+
+linters:
+  enable:
+    # 基本的な静的解析
+    - errcheck      # エラーチェック漏れを防ぐ
+    - gosimple      # コードをよりシンプルに（Goらしい書き方）
+    - govet         # Go標準の静的解析ツール
+    - ineffassign   # 未使用の代入を検出
+    - staticcheck   # 高度なバグ検知とスタイルチェック
+    - typecheck     # 型チェック
+    - unused        # 未使用のコードを検出
+
+    # コード品質
+    - bodyclose     # HTTPレスポンスボディのクローズ漏れ（メモリリーク防止）
+    - stylecheck    # スタイルガイドのチェック
+    - gofmt         # コードフォーマットのチェック
+    - goimports     # import文の整理
+    - misspell      # スペルミスの検出
+    - unconvert     # 不要な型変換の検出
+    - unparam       # 未使用のパラメータの検出
+
+    # 複雑度チェック
+    - gocyclo       # 循環的複雑度のチェック
+    - gocognit      # 認知的複雑度のチェック
+
+    # セキュリティ
+    - gosec         # セキュリティ上の問題を検出
+
+    # アーキテクチャ境界の強制（depguard）
+    - depguard      # パッケージ間の依存関係を制限
+
+linters-settings:
+  # アーキテクチャ境界の設定（ESLintのimport/no-restricted-pathsに相当）
+  depguard:
+    rules:
+      # Domain層の依存制限
+      domain-layer:
+        files:
+          - "**/internal/domain/**/*.go"
+          - "!**/internal/domain/**/*_test.go"
+        deny:
+          - pkg: "ddd-hands-on-go/internal/application"
+            desc: "Domain層でApplication層をimportしてはいけません"
+          - pkg: "ddd-hands-on-go/cmd"
+            desc: "Domain層でPresentation層をimportしてはいけません"
+          - pkg: "ddd-hands-on-go/internal/infrastructure"
+            desc: "Domain層でInfrastructure層をimportしてはいけません"
+
+      # Application層の依存制限
+      application-layer:
+        files:
+          - "**/internal/application/**/*.go"
+          - "!**/internal/application/**/*_test.go"
+        deny:
+          - pkg: "ddd-hands-on-go/cmd"
+            desc: "Application層でPresentation層をimportしてはいけません"
+          - pkg: "ddd-hands-on-go/internal/infrastructure"
+            desc: "Application層でInfrastructure層をimportしてはいけません"
+
+  # 循環的複雑度の閾値
+  gocyclo:
+    min-complexity: 15
+
+  # 認知的複雑度の閾値
+  gocognit:
+    min-complexity: 20
+
+  # セキュリティチェックの設定
+  gosec:
+    excludes:
+      - G104  # エラーチェックはerrcheckで行うため除外
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  # 特定のディレクトリを除外
+  exclude-dirs:
+    - vendor
+    - .git
+
+  # テストファイルでは一部のルールを緩和
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - gocognit
+        - errcheck
